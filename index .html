@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PlayWeb Academy</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="login-screen" class="login-screen active">
+      <div class="login-card">
+        <div class="login-topbar">
+          <span class="status-pill">Premium learning</span>
+          <span class="mini-brand">WebForge Studio</span>
+        </div>
+        <div class="login-logo">W</div>
+        <h1>PlayWeb Academy</h1>
+        <p>ابدأ رحلتك في تطوير الويب من الصفر إلى المشروع الحقيقي.</p>
+
+        <div class="feature-pills">
+          <span>🚀 مستوى احترافي</span>
+          <span>🎯 10 مسارات</span>
+          <span>💡 مشاريع عملية</span>
+        </div>
+
+        <form id="login-form" class="login-form">
+          <div class="login-methods">
+            <button type="button" id="google-login" class="secondary-btn login-method-btn">تسجيل الدخول عبر Google</button>
+            <button type="button" id="email-login" class="secondary-btn login-method-btn">تسجيل الدخول عبر البريد</button>
+          </div>
+
+          <label for="email">البريد الإلكتروني</label>
+          <input id="email" type="email" placeholder="example@gmail.com" />
+
+          <label for="username">اسم اللاعب</label>
+          <input id="username" type="text" placeholder="اكتب اسمك" required />
+
+          <div class="avatar-picker-wrap">
+            <label>اختر افتارك</label>
+            <div class="avatar-picker" id="avatar-picker">
+              <button type="button" class="avatar-option selected" data-avatar="🙂" title="Smile">🙂</button>
+              <button type="button" class="avatar-option" data-avatar="😎" title="Cool">😎</button>
+              <button type="button" class="avatar-option" data-avatar="🤩" title="Star">🤩</button>
+              <button type="button" class="avatar-option" data-avatar="😺" title="Cat">😺</button>
+              <button type="button" class="avatar-option" data-avatar="🚀" title="Rocket">🚀</button>
+            </div>
+          </div>
+
+          <button type="submit" class="primary-btn wide">دخول إلى اللعبة</button>
+        </form>
+      </div>
+    </div>
+
+    <div id="app" class="app-shell hidden">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="logo">W</div>
+          <div>
+            <h1>PlayWeb</h1>
+            <p>Academy</p>
+          </div>
+        </div>
+
+        <div class="profile-card">
+          <div class="profile-header">
+            <div class="avatar" id="user-avatar">🙂</div>
+            <div>
+              <strong id="display-name">المستخدم</strong>
+              <small id="rank-label">مبتدئ</small>
+            </div>
+          </div>
+          <div class="profile-progress">
+            <span>التقدم</span>
+            <strong id="profile-progress">0%</strong>
+          </div>
+        </div>
+
+        <nav class="side-nav">
+          <button class="nav-btn active" data-tab="missions">المهام</button>
+          <button class="nav-btn" data-tab="quiz">أسئلة تعليمية</button>
+          <button class="nav-btn" data-tab="leaderboard">الترتيب</button>
+          <button class="nav-btn" data-tab="shop">المتجر</button>
+          <button class="nav-btn" data-tab="profile">الملف الشخصي</button>
+        </nav>
+
+        <div class="stats-grid">
+          <div class="stat-box">
+            <span>المستوى</span>
+            <strong id="level-indicator">1</strong>
+          </div>
+          <div class="stat-box">
+            <span>XP</span>
+            <strong id="xp-indicator">0</strong>
+          </div>
+          <div class="stat-box">
+            <span>العملات</span>
+            <strong id="coins-indicator">0</strong>
+          </div>
+        </div>
+      </aside>
+
+      <main class="game-panel">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">الجولة الحالية</p>
+            <h2 id="level-title">مستوى 1: أساسيات HTML</h2>
+          </div>
+          <div class="top-actions">
+            <button id="reset-button" class="secondary-btn">إعادة تعيين</button>
+            <button id="next-button" class="primary-btn">التالي</button>
+          </div>
+        </header>
+
+        <div id="premium-banner" class="premium-banner">
+          <div>
+            <strong>Premium Pass</strong>
+            <p>استفد أكثر من المحتوى إذا اشتريت الباقة بـ $100 وتعرف على أسئلة التوصيل، الفراغات، الاختيارات، والإنشاء.</p>
+          </div>
+          <button id="unlock-premium" class="primary-btn small-btn">شراء Premium</button>
+        </div>
+
+        <div id="premium-module" class="premium-module"></div>
+
+        <section id="missions-panel" class="tab-panel active">
+          <div class="mission-layout">
+            <div class="task-panel">
+              <h3>مهمة اليوم</h3>
+              <p id="task-description"></p>
+              <div class="hint-box">
+                <strong>تلميح:</strong>
+                <span id="hint-text"></span>
+              </div>
+            </div>
+
+            <div class="editor-panel">
+              <div class="editor-head">
+                <span>Code Editor</span>
+                <button id="run-button" class="secondary-btn">تشغيل</button>
+              </div>
+              <textarea id="code-editor" spellcheck="false"></textarea>
+            </div>
+          </div>
+
+          <div class="preview-panel">
+            <div class="preview-head">
+              <span>معاينة الموقع</span>
+              <span id="status-badge" class="status-badge neutral">انتظار</span>
+            </div>
+            <iframe id="preview-frame" title="Preview"></iframe>
+          </div>
+        </section>
+
+        <section id="quiz-panel" class="tab-panel">
+          <div class="panel-card">
+            <div class="quiz-head">
+              <h3>أسئلة تعليمية</h3>
+              <div class="quiz-level-tabs" id="quiz-level-tabs"></div>
+            </div>
+            <p class="quiz-progress-text" id="quiz-progress-text"></p>
+            <div id="quiz-question-box"></div>
+          </div>
+        </section>
+
+        <section id="leaderboard-panel" class="tab-panel">
+          <div class="panel-card">
+            <h3>لوحة المتصدرين</h3>
+            <div id="leaderboard-list" class="leaderboard-list"></div>
+          </div>
+        </section>
+
+        <section id="shop-panel" class="tab-panel">
+          <div class="panel-card">
+            <h3>المتجر</h3>
+            <div id="shop-list" class="shop-list"></div>
+          </div>
+        </section>
+
+        <section id="profile-panel" class="tab-panel">
+          <div class="panel-card">
+            <h3>ملف اللاعب</h3>
+            <div class="profile-summary">
+              <div>
+                <span>الاسم</span>
+                <strong id="profile-name">-</strong>
+              </div>
+              <div>
+                <span>المستوى الحالي</span>
+                <strong id="profile-level">1</strong>
+              </div>
+              <div>
+                <span>الإنجازات</span>
+                <strong id="profile-achievements">0</strong>
+              </div>
+            </div>
+            <div id="achievement-list" class="achievement-list"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
