@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Code Quest — Learn. Code. Play. Master.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{
+  --bg:#0a0a0a;
+  --bg2:#141414;
+  --panel:#111111;
+  --line:#2a2a2a;
+  --line2:#3a3a3a;
+  --fg:#f2f2f2;
+  --dim:#9a9a9a;
+  --dim2:#6a6a6a;
+  --white:#ffffff;
+  --black:#000000;
+  --danger:#e5e5e5;
+  --ok:#ffffff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:
+    radial-gradient(circle at 15% 10%, #1a1a1a 0%, transparent 40%),
+    radial-gradient(circle at 85% 90%, #161616 0%, transparent 40%),
+    var(--bg);
+  color:var(--fg);
+  font-family:'JetBrains Mono', monospace;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+h1,h2,h3,.display{font-family:'Space Grotesk',sans-serif;letter-spacing:.01em}
+::selection{background:#fff;color:#000}
+button{font-family:inherit;cursor:pointer}
+a{color:inherit}
+
+/* ---------- scanline / grid texture ---------- */
+.grid-overlay{
+  position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;
+  background-image:
+    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+  background-size:36px 36px;
+}
+
+/* ---------- boot screen ---------- */
+#boot{
+  position:fixed;inset:0;background:#000;z-index:999;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;
+}
+#boot .logo{font-family:'Space Grotesk';font-weight:700;font-size:14vw;letter-spacing:-.02em;line-height:.9;
+  background:linear-gradient(180deg,#fff,#7a7a7a);-webkit-background-clip:text;background-clip:text;color:transparent}
+#boot .sub{color:var(--dim2);font-size:12px;letter-spacing:.35em;text-transform:uppercase}
+#boot .bar{width:min(320px,70vw);height:2px;background:#222;position:relative;overflow:hidden}
+#boot .bar i{position:absolute;inset:0;background:#fff;width:0%;animation:load 1.6s ease forwards}
+@keyframes load{to{width:100%}}
+#boot .tag{color:var(--dim);font-size:11px}
+
+/* ---------- app shell ---------- */
+#app{display:none;position:relative;z-index:1;min-height:100vh}
+.hidden{display:none !important}
+
+/* ---------- topbar HUD ---------- */
+#hud{
+  position:sticky;top:0;z-index:50;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 20px;border-bottom:1px solid var(--line);
+  background:rgba(10,10,10,.85);backdrop-filter:blur(8px);
+  gap:12px;flex-wrap:wrap;
+}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px}
+.brand .mark{width:26px;height:26px;border:1.5px solid #fff;display:grid;place-items:center;font-size:12px;font-weight:800}
+.hud-stats{display:flex;align-items:center;gap:16px;font-size:12px;color:var(--dim)}
+.hud-stat{display:flex;align-items:center;gap:6px;border:1px solid var(--line);padding:5px 10px}
+.hud-stat b{color:#fff;font-weight:700}
+.xp-mini{width:80px;height:5px;background:#222;position:relative;overflow:hidden}
+.xp-mini i{position:absolute;inset:0;background:#fff;transition:width .4s}
+.navlinks{display:flex;gap:6px}
+.navlinks button{background:transparent;border:1px solid var(--line);color:var(--dim);padding:6px 12px;font-size:12px;letter-spacing:.05em}
+.navlinks button.active,.navlinks button:hover{border-color:#fff;color:#fff}
+
+.view{padding:28px 20px 80px;max-width:1080px;margin:0 auto;animation:fade .35s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---------- buttons ---------- */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  background:#fff;color:#000;border:1px solid #fff;
+  padding:12px 22px;font-weight:700;font-size:13px;
+  letter-spacing:.03em;text-transform:uppercase; 
+  transition:transform .15s, box-shadow .15s;
+}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 0 #444}
+.btn:active{transform:translateY(0);box-shadow:none}
+.btn.ghost{background:transparent;color:#fff;border:1px solid var(--line2)}
+.btn.ghost:hover{border-color:#fff;box-shadow:none}
+.btn.block{width:100%;justify-content:center}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+.btn.small{padding:8px 14px;font-size:11px}
+.btn.success{background:#28a745;color:#fff;border-color:#28a745}
+.btn.success:hover{box-shadow:0 6px 0 #1e7e34}
+
+/* ---------- hero ---------- */
+.hero{
+  border:1px solid var(--line);padding:48px 28px;position:relative;overflow:hidden;
+  background:linear-gradient(180deg,#101010,#0a0a0a);
+}
+.hero::before{
+  content:"";position:absolute;inset:0;
+  background-image:repeating-linear-gradient(115deg, rgba(255,255,255,.035) 0 1px, transparent 1px 22px);
+  pointer-events:none;
+}
+.eyebrow{font-size:11px;letter-spacing:.35em;color:var(--dim2);text-transform:uppercase;margin-bottom:16px}
+.hero h1{font-size:clamp(28px,5vw,46px);font-weight:700;line-height:1.05;max-width:720px}
+.hero p{color:var(--dim);margin-top:14px;max-width:560px;font-size:14px;line-height:1.7}
+.hero-actions{display:flex;gap:12px;margin-top:26px;flex-wrap:wrap}
+.hero-flow{display:flex;gap:6px;margin-top:34px;flex-wrap:wrap;font-size:11px;color:var(--dim2);letter-spacing:.1em}
+.hero-flow span{border:1px solid var(--line);padding:6px 10px}
+.hero-flow span.on{border-color:#fff;color:#fff}
+
+/* ---------- pricing cards on home ---------- */
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:20px}
+.pcard{border:1px solid var(--line);padding:20px;position:relative}
+.pcard h3{font-size:13px;letter-spacing:.15em;text-transform:uppercase;color:var(--dim)}
+.pcard .price{font-size:32px;font-weight:700;margin:10px 0}
+.pcard ul{list-style:none;font-size:12px;color:var(--dim);display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.pcard ul li::before{content:"— ";color:#555}
+.pcard .tag{position:absolute;top:-1px;right:-1px;background:#fff;color:#000;font-size:10px;padding:4px 8px;font-weight:700}
+
+/* ---------- section title ---------- */
+.stitle{display:flex;align-items:baseline;justify-content:space-between;margin:36px 0 14px;gap:10px}
+.stitle h2{font-size:20px}
+.stitle .num{font-size:11px;color:var(--dim2);letter-spacing:.2em}
+
+/* ---------- character select ---------- */
+.avatars{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:12px;margin:18px 0}
+.avatar{
+  border:1px solid var(--line);padding:16px 8px;text-align:center;font-size:34px;
+  display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;
+}
+.avatar small{font-size:10px;color:var(--dim);letter-spacing:.05em}
+.avatar.sel{border-color:#fff;background:#161616}
+.field{margin:16px 0}
+.field label{display:block;font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+.field input{
+  width:100%;background:#101010;border:1px solid var(--line);color:#fff;
+  padding:12px 14px;font-family:inherit;font-size:14px;
+}
+.field input:focus{outline:none;border-color:#fff}
+
+/* ---------- world map ---------- */
+.map{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.island{
+  border:1px solid var(--line);padding:22px;cursor:pointer;position:relative;
+  transition:border-color .15s, transform .15s;
+}
+.island:hover:not(.locked){border-color:#fff;transform:translateY(-3px)}
+.island.locked{opacity:.4;cursor:not-allowed}
+.island .icon{font-size:28px}
+.island h3{margin-top:10px;font-size:16px}
+.island p{color:var(--dim);font-size:11.5px;margin-top:6px;line-height:1.6}
+.island .bar{height:4px;background:#222;margin-top:14px;overflow:hidden}
+.island .bar i{display:block;height:100%;background:#fff}
+.island .meta{display:flex;justify-content:space-between;font-size:10.5px;color:var(--dim2);margin-top:8px}
+.lock-badge{position:absolute;top:12px;left:12px;font-size:10px;border:1px solid var(--line2);padding:3px 7px;color:var(--dim)}
+
+/* ---------- missions list ---------- */
+.mlist{display:flex;flex-direction:column;border:1px solid var(--line)}
+.mrow{
+  display:flex;align-items:center;justify-content:space-between;padding:14px 18px;
+  border-bottom:1px solid var(--line);gap:10px;cursor:pointer;
+}
+.mrow:last-child{border-bottom:none}
+.mrow.done{color:var(--dim)}
+.mrow .left{display:flex;align-items:center;gap:12px}
+.mrow .idx{width:26px;height:26px;border:1px solid var(--line2);display:grid;place-items:center;font-size:11px}
+.mrow.done .idx{background:#fff;color:#000;border-color:#fff}
+.mrow .title{font-size:13.5px}
+.mrow .status{font-size:10.5px;color:var(--dim2);letter-spacing:.05em}
+.mrow.locked{opacity:.35;cursor:not-allowed}
+
+/* ---------- mission play screen ---------- */
+.mission-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.brief{border:1px solid var(--line);padding:18px;background:#0d0d0d;margin:16px 0}
+.brief .k{font-size:10px;letter-spacing:.2em;color:var(--dim2);text-transform:uppercase}
+.brief p{color:var(--dim);font-size:13px;line-height:1.7;margin-top:8px}
+.editor-wrap{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+@media(max-width:760px){.editor-wrap{grid-template-columns:1fr}}
+.editor-box{border:1px solid var(--line)}
+.editor-box .bar2{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);font-size:10.5px;color:var(--dim2);letter-spacing:.1em;direction:ltr;text-align:left}
+textarea{
+  width:100%;height:230px;background:#0a0a0a;color:#eaeaea;border:none;
+  font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.6;padding:14px;resize:vertical;
+  direction:ltr;text-align:left;unicode-bidi:plaintext;
+}
+textarea:focus{outline:none}
+iframe{width:100%;height:230px;border:none;background:#fff}
+.console{background:#0a0a0a;padding:12px;font-size:12px;min-height:60px;border-top:1px solid var(--line);unicode-bidi:plaintext}
+.console .ok{color:#fff}
+.console .err{color:#c9c9c9}
+.console .hint{color:var(--dim2);margin-top:6px;font-style:italic}
+.mission-actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+
+/* ---------- toast / reward popup ---------- */
+#toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(140%);
+  background:#fff;color:#000;padding:16px 24px;font-weight:700;font-size:14px;
+  display:flex;align-items:center;gap:14px;z-index:200;transition:transform .35s ease;
+  box-shadow:0 10px 40px rgba(0,0,0,.5);
+}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast .pill{background:#000;color:#fff;font-size:11px;padding:3px 8px}
+
+/* ---------- profile ---------- */
+.profile-grid{display:grid;grid-template-columns:220px 1fr;gap:20px}
+@media(max-width:700px){.profile-grid{grid-template-columns:1fr}}
+.pcol{border:1px solid var(--line);padding:20px;text-align:center}
+.pcol .av{font-size:52px}
+.pcol h3{margin-top:10px}
+.pcol .lvl{color:var(--dim);font-size:12px;margin-top:4px}
+.xpbar{height:8px;background:#1a1a1a;margin-top:14px;overflow:hidden}
+.xpbar i{display:block;height:100%;background:#fff}
+.stats2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.stat2{border:1px solid var(--line);padding:10px;text-align:center}
+.stat2 b{display:block;font-size:20px}
+.stat2 span{font-size:10px;color:var(--dim2);letter-spacing:.1em}
+.ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.ach{border:1px solid var(--line);padding:14px;text-align:center;font-size:11px;color:var(--dim2)}
+.ach.on{border-color:#fff;color:#fff}
+.ach .em{font-size:22px;display:block;margin-bottom:6px}
+
+/* ---------- referral ---------- */
+.ref-box{border:1px solid var(--line);padding:24px}
+.code-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0}
+.code{border:1px dashed var(--line2);padding:12px 16px;font-size:16px;font-weight:700;letter-spacing:.05em;direction:ltr}
+.progress-line{margin:20px 0}
+.progress-line .track{height:10px;background:#1a1a1a;overflow:hidden}
+.progress-line .track i{display:block;height:100%;background:#fff;transition:width .4s}
+.share-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.share-row button{border:1px solid var(--line);background:transparent;color:var(--dim);padding:9px 14px;font-size:11.5px}
+.share-row button:hover{border-color:#fff;color:#fff}
+.note{font-size:11.5px;color:var(--dim2);border-top:1px solid var(--line);margin-top:20px;padding-top:14px;line-height:1.7}
+
+/* ---------- locked level page ---------- */
+.locked-panel{border:1px solid var(--line);padding:40px;text-align:center}
+.locked-panel .lock{font-size:34px}
+.locked-panel h2{margin-top:12px}
+.locked-panel p{color:var(--dim);font-size:13px;max-width:420px;margin:10px auto 0}
+
+/* footer */
+footer{border-top:1px solid var(--line);padding:20px;text-align:center;color:var(--dim2);font-size:11px;margin-top:60px}
+</style>
+</head>
+<body>
+
+<div id="boot">
+  <div class="logo">CQ</div>
+  <div class="sub">Code Quest</div>
+  <div class="bar"><i></i></div>
+  <div class="tag" id="bootline">booting world...</div>
+</div>
+
+<div class="grid-overlay"></div>
+
+<div id="app">
+  <div id="hud">
+    <div class="brand"><div class="mark">CQ</div> CODE QUEST</div>
+    <div class="hud-stats" id="hudStats"></div>
+    <div class="navlinks" id="navlinks"></div>
+  </div>
+  <div id="view" class="view"></div>
+  <footer>Code Quest — Learn. Code. Play. Master.</footer>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"; // 👈 بدّلها بمعرفك من Google Cloud Console
+
+const state = {
+  username: "",
+  avatar: "",
+  email: "",
+  xp: 0,
+  coins: 0,
+  completed: new Set(),
+  achievements: new Set(),
+  referralCode: "",
+  invitesAccepted: 0,
+  level1Unlocked: false,
+  currentIslandId: null,
+  currentMissionId: null,
+};
+
+const AVATARS = [
+  {id:"a1", e:"🧑‍💻", n:"Coder"},
+  {id:"a2", e:"🦾", n:"Builder"},
+  {id:"a3", e:"🧠", n:"Logic"},
+  {id:"a4", e:"🛰️", n:"Pioneer"},
+  {id:"a5", e:"🐉", n:"Debugger"},
+  {id:"a6", e:"🦉", n:"Sage"},
+];
+
+const ISLANDS = [
+  {
+    id:"html", name:"HTML Island", icon:"🏝️", desc:"أصلح المواقع المكسورة وتعلم بنية الويب.",
+    unlockedByDefault:true,
+    missions:[
+      {
+        id:"h1", title:"إصلاح العنوان", xp:100, coins:20,
+        brief:"الباب لا يفتح لأن العنوان مكسور. أصلح الكود بحيث يظهر عنصر h1 نصه Welcome.",
+        starter:"<h1>Welcome",
+        check(code){
+          const ok = /<h1>\s*Welcome\s*<\/h1>/i.test(code);
+          return {pass: ok, msg: ok? "الباب انفتح! العنوان صحيح." : "الوسم h1 غير مغلق أو النص غير مطابق.", hint:"تأكد إن عندك وسم إغلاق </h1> وإن النص بالضبط Welcome."};
+        }
+      },
+      {
+        id:"h2", title:"هيكل الصفحة", xp:120, coins:25,
+        brief:"ابنِ هيكل صفحة HTML کامل يحتوي على DOCTYPE و html و head و title و body.",
+        starter:"<!-- اكتب هيكل الصفحة هنا -->",
+        check(code){
+          const req = [/<!doctype html>/i,/<html/i,/<head>/i,/<title>/i,/<\/title>/i,/<body>/i];
+          const missing = req.filter(r=>!r.test(code));
+          const ok = missing.length===0;
+          return {pass:ok, msg: ok? "الهيكل مكتمل!" : `ناقص ${missing.length} عنصر من عناصر الهيكل الأساسية.`, hint:"لازم: <!DOCTYPE html> ثم <html> ثم <head> فيه <title> ثم <body>."};
+        }
+      },
+      {
+        id:"h3", title:"رابط حقيقي", xp:110, coins:20,
+        brief:"أنشئ رابط <a> يوجه إلى https://example.com ونصه Click me.",
+        starter:"<!-- اكتب الرابط هنا -->",
+        check(code){
+          const ok = /<a\s+[^>]*href=["']https:\/\/example\.com["'][^>]*>\s*Click me\s*<\/a>/i.test(code);
+          return {pass:ok, msg: ok? "الرابط اشتغل!" : "الرابط غير مطابق.", hint:'الشكل الصحيح: <a href="https://example.com">Click me</a>'};
+        }
+      },
+      {
+        id:"h4", title:"صورة بوصول متاح للجميع", xp:110, coins:20,
+        brief:"أضف عنصر img بمصدر cat.jpg، ولازم يحتوي على خاصية alt (لتكون الصورة مفهومة لقارئ الشاشة).",
+        starter:"<!-- اكتب وسم الصورة هنا -->",
+        check(code){
+          const hasImg = /<img[^>]*src=["']cat\.jpg["'][^>]*>/i.test(code);
+          const hasAlt = /<img[^>]*alt=["'][^"']+["'][^>]*>/i.test(code);
+          const ok = hasImg && hasAlt;
+          return {pass:ok, msg: ok?"صورة صحيحة ومتاحة للجميع!":"ناقص src=\"cat.jpg\" أو خاصية alt.", hint:'مثال: <img src="cat.jpg" alt="قطة بيضاء">'};
+        }
+      },
+    ],
+    boss:{
+      id:"hboss", title:"HTML Boss — الصفحة الكاملة", xp:300, coins:80,
+      brief:"ابنِ صفحة فيها header يحتوي h1، nav، زر button، و footer — كل عنصر لازم يكون موجود فعليًا بالكود.",
+      starter:"<!-- ابنِ الصفحة الكاملة هنا -->",
+      check(code){
+        const req = {header:/<header/i, h1:/<h1/i, nav:/<nav/i, button:/<button/i, footer:/<footer/i};
+        const missing = Object.entries(req).filter(([k,r])=>!r.test(code)).map(([k])=>k);
+        const ok = missing.length===0;
+        return {pass:ok, msg: ok? "🏆 هزمت الـ Boss!" : `ناقص: ${missing.join(", ")}`, hint:"استخدم header, h1, nav, button, footer كوسوم فعلية بالكود."};
+      }
+    }
+  },
+  {
+    id:"css", name:"CSS City", icon:"🏙️", desc:"صمم وأصلح واجهات المدينة.",
+    unlockedByDefault:false, requires:"html",
+    missions:[
+      {
+        id:"c1", title:"أول لون", xp:100, coins:20, type:"html",
+        brief:"المدينة رمادية باهتة. استخدم CSS لجعل لون نص عنصر h1 أحمر (red) — إما بخاصية style أو داخل وسم style.",
+        starter:"<h1>City Lights</h1>",
+        check(code){
+          const inline = /<h1[^>]*style=["'][^"']*color\s*:\s*red[^"']*["']/i.test(code);
+          const block = /h1\s*{[^}]*color\s*:\s*red/i.test(code);
+          const ok = inline || block;
+          return {pass:ok, msg: ok?"الأنوار اشتعلت!":"لون h1 لسا مو أحمر.", hint:'جرّب: <h1 style="color:red">City Lights</h1> أو h1{color:red;} داخل <style>'};
+        }
+      },
+      {
+        id:"c2", title:"Selectors", xp:110, coins:20, type:"html",
+        brief:"أنشئ عنصر div بالـ class=\"box\" وحدد له border باستخدام selector الكلاس .box داخل وسم <style>.",
+        starter:"<style>\n/* اكتب selector هنا */\n</style>\n<div class=\"box\">Box</div>",
+        check(code){
+          const hasDiv = /<div[^>]*class=["'][^"']*\bbox\b[^"']*["']/i.test(code);
+          const hasRule = /\.box\s*{[^}]*border\s*:/i.test(code);
+          const ok = hasDiv && hasRule;
+          return {pass:ok, msg: ok?"الصندوق تحدد!":"ناقص عنصر class=\"box\" أو قاعدة .box{border:...}", hint:'.box{ border: 2px solid #000; }'};
+        }
+      },
+      {
+        id:"c3", title:"Backgrounds & Fonts", xp:110, coins:20, type:"html",
+        brief:"اجعل خلفية body سوداء (black) ولون الخط أبيض (white) — داخل وسم <style>.",
+        starter:"<style>\nbody{}\n</style>\n<p>Night City</p>",
+        check(code){
+          const bg = /body\s*{[^}]*background(-color)?\s*:\s*black/i.test(code) || /body\s*{[^}]*background(-color)?\s*:\s*#0*[0-9a-f]{0,1}(000)?\b/i.test(code);
+          const col = /body\s*{[^}]*color\s*:\s*white/i.test(code);
+          const ok = bg && col;
+          return {pass:ok, msg: ok?"المدينة صارت ليلية بالكامل!":"لازم background:black و color:white على body.", hint:'body{ background:black; color:white; }'};
+        }
+      },
+      {
+        id:"c4", title:"Flexbox", xp:130, coins:25, type:"html",
+        brief:"أنشئ div بـ class=\"row\" يحتوي 3 عناصر span بداخله، وخلي الـ row تستخدم display:flex.",
+        starter:'<div class="row">\n  <span>A</span>\n  <span>B</span>\n  <span>C</span>\n</div>\n<style>\n\n</style>',
+        check(code){
+          const ok = /\.row\s*{[^}]*display\s*:\s*flex/i.test(code) && (code.match(/<span/gi)||[]).length>=3;
+          return {pass:ok, msg: ok?"الصفوف اصطفت بشكل مثالي!":"لازم .row{display:flex} و3 عناصر span على الأقل.", hint:'.row{ display:flex; gap:10px; }'};
+        }
+      },
+    ],
+    boss:{
+      id:"cboss", title:"CSS Boss — بطاقة كاملة", xp:320, coins:80, type:"html",
+      brief:"ابنِ بطاقة (card) فيها: div بكلاس card، فيه display:flex، padding، وborder-radius — كلها لازم تكون موجودة فعليًا.",
+      starter:'<div class="card">\n  <h3>Card Title</h3>\n</div>\n<style>\n.card{\n\n}\n</style>',
+      check(code){
+        const req = {display:/\.card\s*{[^}]*display\s*:\s*flex/i, padding:/\.card\s*{[^}]*padding\s*:/i, radius:/\.card\s*{[^}]*border-radius\s*:/i};
+        const missing = Object.entries(req).filter(([k,r])=>!r.test(code)).map(([k])=>k);
+        const ok = missing.length===0;
+        return {pass:ok, msg: ok? "🏆 المدينة صممتها باحتراف!" : `ناقص: ${missing.join(", ")}`, hint:".card{ display:flex; padding:16px; border-radius:12px; }"};
+      }
+    }
+  },
+  {
+    id:"js", name:"JavaScript Forest", icon:"🌲", desc:"اكتب منطق يحرك الغابة.",
+    unlockedByDefault:false, requires:"css",
+    missions:[
+      {
+        id:"j1", title:"أول متغير", xp:110, coins:20, type:"js",
+        brief:"أنشئ متغير اسمه message وقيمته النص \"Hello World\" بالضبط.",
+        starter:"// اكتب الكود هنا\n",
+        check(code){
+          try{
+            const fn = new Function(code + '\nreturn (typeof message !== "undefined") ? message : "undef";');
+            const r = fn();
+            const ok = r === "Hello World";
+            return {pass:ok, msg: ok? "المتغير صحيح!" : `القيمة الحالية: ${r}`, hint:'اكتب: let message = "Hello World";'};
+          }catch(e){ return {pass:false, msg:"خطأ بالكود: "+e.message, hint:"تأكد من صحة الصياغة (Syntax)."}; }
+        }
+      },
+      {
+        id:"j2", title:"مصفوفة الفواكه", xp:110, coins:20, type:"js",
+        brief:"أنشئ مصفوفة (Array) اسمها fruits تحتوي على 3 عناصر نصية بالضبط.",
+        starter:"// اكتب الكود هنا\n",
+        check(code){
+          try{
+            const fn = new Function(code + '\nreturn (typeof fruits !== "undefined" && Array.isArray(fruits)) ? fruits.length : -1;');
+            const r = fn();
+            const ok = r===3;
+            return {pass:ok, msg: ok?"3 فواكه بالضبط!":`عدد العناصر الحالي: ${r===-1?'المصفوفة غير موجودة':r}`, hint:'let fruits = ["apple","banana","mango"];'};
+          }catch(e){ return {pass:false, msg:"خطأ بالكود: "+e.message, hint:"تأكد من صحة الصياغة."}; }
+        }
+      },
+      {
+        id:"j3", title:"شرط if/else", xp:120, coins:25, type:"js",
+        brief:"اكتب دالة اسمها checkAge تستقبل رقم age، وترجع النص \"adult\" إذا كان 18 أو أكبر، وإلا ترجع \"minor\".",
+        starter:"function checkAge(age){\n  // اكمل هنا\n}\n",
+        check(code){
+          try{
+            const fn = new Function(code + '\nreturn (typeof checkAge === "function") ? [checkAge(20), checkAge(10)] : null;');
+            const r = fn();
+            const ok = r && r[0]==="adult" && r[1]==="minor";
+            return {pass:ok, msg: ok?"الشرط شغال بالضبط!":"النتيجة غير صحيحة لكل الحالات.", hint:"استخدم if(age>=18) return 'adult'; else return 'minor';"};
+          }catch(e){ return {pass:false, msg:"خطأ بالكود: "+e.message, hint:"تأكد من اسم الدالة checkAge وصياغتها."}; }
+        }
+      },
+      {
+        id:"j4", title:"دالة الجمع", xp:120, coins:25, type:"js",
+        brief:"اكتب دالة sum(a, b) ترجع ناتج جمع a و b.",
+        starter:"function sum(a, b){\n  // اكمل هنا\n}\n",
+        check(code){
+          try{
+            const fn = new Function(code + '\nreturn (typeof sum === "function") ? [sum(2,3), sum(10,5)] : null;');
+            const r = fn();
+            const ok = r && r[0]===5 && r[1]===15;
+            return {pass:ok, msg: ok?"الدالة صحيحة!":"النتيجة غير صحيحة.", hint:"return a + b;"};
+          }catch(e){ return {pass:false, msg:"خطأ بالكود: "+e.message, hint:"تأكد من اسم الدالة sum."}; }
+        }
+      },
+    ],
+    boss:{
+      id:"jboss", title:"JS Boss — فرز وتصفية", xp:340, coins:90, type:"js",
+      brief:"اكتب دالة evenNumbers(arr) تستقبل مصفوفة أرقام وترجع مصفوفة فيها الأرقام الزوجية فقط.",
+      starter:"function evenNumbers(arr){\n  // اكمل هنا\n}\n",
+      check(code){
+        try{
+          const fn = new Function(code + '\nreturn (typeof evenNumbers === "function") ? JSON.stringify(evenNumbers([1,2,3,4,5,6])) : null;');
+          const r = fn();
+          const ok = r === JSON.stringify([2,4,6]);
+          return {pass:ok, msg: ok? "🏆 هزمت الـ Boss!" : `النتيجة الحالية: ${r}`, hint:"استخدم arr.filter(n => n % 2 === 0);"};
+        }catch(e){ return {pass:false, msg:"خطأ بالكود: "+e.message, hint:"تأكد من اسم الدالة evenNumbers."}; }
+      }
+    }
+  },
+  {
+    id:"dom", name:"DOM Castle", icon:"🏰", desc:"تحكم بعناصر الصفحة الحية.",
+    unlockedByDefault:false, requires:"js",
+    missions:[
+      {
+        id:"d1", title:"تغيير النص", xp:130, coins:25, type:"dom",
+        brief:"فيه عنصر h1 بمعرف id=\"title\" نصه Old Title. استخدم JavaScript لتغيير نصه إلى New Title.",
+        starter:'<h1 id="title">Old Title</h1>\n<script>\n// غيّر النص هنا\n<\/script>',
+        check(code, doc){
+          const el = doc.getElementById('title');
+          const ok = !!el && el.textContent.trim()==="New Title";
+          return {pass:ok, msg: ok?"القلعة استجابت للأمر!":"النص لسا مو New Title.", hint:"document.getElementById('title').textContent = 'New Title';"};
+        }
+      },
+      {
+        id:"d2", title:"إنشاء عنصر جديد", xp:130, coins:25, type:"dom",
+        brief:"فيه div بمعرف id=\"box\". استخدم JavaScript لإنشاء عنصر p نصه \"Created!\" وأضفه بداخل الـ box.",
+        starter:'<div id="box"></div>\n<script>\n// أنشئ العنصر وأضفه هنا\n<\/script>',
+        check(code, doc){
+          const box = doc.getElementById('box');
+          const ok = !!box && Array.from(box.querySelectorAll('p')).some(p=>p.textContent.trim()==="Created!");
+          return {pass:ok, msg: ok?"عنصر جديد وُلد بالقلعة!":"ما لقيت وسم p نصه Created! بداخل box.", hint:"const p=document.createElement('p'); p.textContent='Created!'; document.getElementById('box').appendChild(p);"};
+        }
+      },
+      {
+        id:"d3", title:"استمع للحدث", xp:140, coins:30, type:"dom",
+        brief:"فيه زر id=\"btn\" وعنصر p بمعرف id=\"out\" نصه فاضي. اكتب كود يخلي الضغط على الزر يغيّر نص out إلى Clicked!.",
+        starter:'<button id="btn">Click</button>\n<p id="out"></p>\n<script>\n// أضف addEventListener هنا\n<\/script>',
+        check(code, doc, win){
+          const btn = doc.getElementById('btn');
+          const out = doc.getElementById('out');
+          if(!btn || !out) return {pass:false, msg:"العناصر ناقصة.", hint:"لا تحذف id=\"btn\" أو id=\"out\"."};
+          btn.dispatchEvent(new win.Event('click', {bubbles:true}));
+          const ok = out.textContent.trim()==="Clicked!";
+          return {pass:ok, msg: ok?"الحدث اشتغل فعليًا!":"الضغط على الزر ما غيّر النص.", hint:"document.getElementById('btn').addEventListener('click', ()=>{ document.getElementById('out').textContent='Clicked!'; });"};
+        }
+      },
+    ],
+    boss:{
+      id:"dboss", title:"DOM Boss — عدّاد تفاعلي", xp:360, coins:100, type:"dom",
+      brief:"فيه زر id=\"inc\" وعنصر span id=\"count\" يبدأ من 0. كل ضغطة على الزر لازم تزيد الرقم بداخل count بمقدار 1.",
+      starter:'<button id="inc">+1</button>\n<span id="count">0</span>\n<script>\n// اكتب منطق العداد هنا\n<\/script>',
+      check(code, doc, win){
+        const btn = doc.getElementById('inc');
+        const cnt = doc.getElementById('count');
+        if(!btn || !cnt) return {pass:false, msg:"العناصر ناقصة.", hint:"لا تحذف id=\"inc\" أو id=\"count\"."};
+        btn.dispatchEvent(new win.Event('click', {bubbles:true}));
+        btn.dispatchEvent(new win.Event('click', {bubbles:true}));
+        btn.dispatchEvent(new win.Event('click', {bubbles:true}));
+        const ok = cnt.textContent.trim()==="3";
+        return {pass:ok, msg: ok? "🏆 العداد يشتغل بشكل مثالي!" : `بعد 3 ضغطات القيمة صارت: ${cnt.textContent}`, hint:"احتفظ بمتغير count، وبكل click زوده واطبعه بـ span."};
+      }
+    }
+  },
+  {
+    id:"web", name:"Web Dev Kingdom", icon:"👑", desc:"مشاريع Web حقيقية متكاملة.",
+    unlockedByDefault:false, requires:"dom",
+    missions:[
+      {
+        id:"w1", title:"مشروع: بطاقة تعريف تفاعلية", xp:200, coins:50, type:"dom",
+        brief:"ابنِ بطاقة فيها h2 بمعرف id=\"name\" وزر id=\"toggle\". عند الضغط على الزر، غيّر نص name بين Hello و Goodbye في كل ضغطة (Toggle).",
+        starter:'<h2 id="name">Hello</h2>\n<button id="toggle">Toggle</button>\n<script>\n// اكتب منطق التبديل هنا\n<\/script>',
+        check(code, doc, win){
+          const h2 = doc.getElementById('name');
+          const btn = doc.getElementById('toggle');
+          if(!h2 || !btn) return {pass:false, msg:"العناصر ناقصة.", hint:"لا تحذف id=\"name\" أو id=\"toggle\"."};
+          btn.dispatchEvent(new win.Event('click', {bubbles:true}));
+          const after1 = h2.textContent.trim();
+          btn.dispatchEvent(new win.Event('click', {bubbles:true}));
+          const after2 = h2.textContent.trim();
+          const ok = after1==="Goodbye" && after2==="Hello";
+          return {pass:ok, msg: ok?"التبديل يشتغل تمام!":`بعد ضغطتين القيمة: ${after1} ثم ${after2}`, hint:"احتفظ بمتغير boolean وبدّله بكل click، واطبعه كنص مناسب."};
+        }
+      },
+    ],
+    boss:{
+      id:"wboss", title:"Kingdom Boss — موقع متكامل", xp:400, coins:120, type:"dom",
+      brief:"ابنِ صفحة فيها: header يحتوي h1، nav، زر id=\"like\" وعداد span id=\"likes\" يبدأ من 0 ويزيد بكل ضغطة، وfooter. كل هذا لازم يشتغل فعليًا مو ديكور بس.",
+      starter:'<header>\n  <h1>My Site</h1>\n  <nav>Home</nav>\n</header>\n<button id="like">❤️ Like</button>\n<span id="likes">0</span>\n<footer>© 2026</footer>\n<script>\n// اكتب منطق زر اللايك هنا\n<\/script>',
+      check(code, doc, win){
+        const req = {header:doc.querySelector('header'), h1:doc.querySelector('h1'), nav:doc.querySelector('nav'), footer:doc.querySelector('footer')};
+        const missingTags = Object.entries(req).filter(([k,v])=>!v).map(([k])=>k);
+        if(missingTags.length) return {pass:false, msg:`ناقص وسوم: ${missingTags.join(', ')}`, hint:"لازم header, h1, nav, footer موجودة بالكود."};
+        const btn = doc.getElementById('like');
+        const likes = doc.getElementById('likes');
+        if(!btn || !likes) return {pass:false, msg:"ناقص id=\"like\" أو id=\"likes\".", hint:"لا تحذف هذي المعرفات."};
+        btn.dispatchEvent(new win.Event('click', {bubbles:true}));
+        btn.dispatchEvent(new win.Event('click', {bubbles:true}));
+        const ok = likes.textContent.trim()==="2";
+        return {pass:ok, msg: ok? "🏆👑 أنهيت المملكة بأكملها!" : `بعد ضغطتين العداد صار: ${likes.textContent}`, hint:"نفس فكرة عداد DOM Boss، بس بربطه زر Like."};
+      }
+    }
+  },
+];
+
+const ACHIEVEMENTS = [
+  {id:"first_mission", e:"🎖️", n:"أول مهمة", test:()=>state.completed.size>=1},
+  {id:"first_code", e:"💻", n:"أول كود", test:()=>state.completed.size>=1},
+  {id:"html_beginner", e:"🏝️", n:"HTML مبتدئ", test:()=>["h1","h2"].every(m=>state.completed.has(m))},
+  {id:"ten_missions", e:"🔟", n:"10 مهام", test:()=>state.completed.size>=10},
+  {id:"boss_defeated", e:"🐲", n:"هزيمة Boss", test:()=>state.completed.has("hboss")},
+];
+
+// ============ نظام الحسابات الحقيقي (سيرفر + قاعدة بيانات) ============
+// كل بيانات الحساب الآن محفوظة على السيرفر، مو على جهاز اللاعب فقط.
+const API_BASE = window.location.origin; // السيرفر يخدم اللعبة ونفسه، لذا نفس الدومين
+const TOKEN_KEY = "codequest_token_v1";
+
+function getToken(){ return localStorage.getItem(TOKEN_KEY); }
+function setToken(t){ localStorage.setItem(TOKEN_KEY, t); }
+function clearToken(){ localStorage.removeItem(TOKEN_KEY); }
+
+async function apiRequest(path, options={}){
+  const token = getToken();
+  const headers = { 'Content-Type': 'application/json', ...(options.headers||{}) };
+  if(token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  const data = await res.json().catch(()=>({}));
+  if(!res.ok) throw new Error(data.error || 'حدث خطأ غير متوقع.');
+  return data;
+}
+
+function loadUserIntoState(userData){
+  state.email = userData.email;
+  state.username = userData.username;
+  state.avatar = userData.avatar;
+  state.xp = userData.xp || 0;
+  state.coins = userData.coins || 0;
+  state.completed = new Set(userData.completed || []);
+  state.achievements = new Set(userData.achievements || []);
+  state.referralCode = userData.referralCode || genReferralCode(userData.username);
+  state.invitesAccepted = userData.invitesAccepted || 0;
+  state.level1Unlocked = userData.level1Unlocked || false;
+}
+
+function endSession(){ clearToken(); }
+
+// يحفظ التقدم على السيرفر (يُستدعى بعد كل مكسب XP/عملات أو تغيير بروفايل)
+let saveTimer = null;
+function saveCurrentUser(){
+  if(!state.email || !getToken()) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async ()=>{
+    try{
+      await apiRequest('/api/progress', {
+        method: 'POST',
+        body: JSON.stringify({
+          username: state.username,
+          avatar: state.avatar,
+          xp: state.xp,
+          coins: state.coins,
+          completed: Array.from(state.completed),
+          achievements: Array.from(state.achievements),
+          level1Unlocked: state.level1Unlocked,
+        })
+      });
+    }catch(e){ console.error('تعذّر حفظ التقدم:', e.message); }
+  }, 300);
+}
+
+async function restoreSession(){
+  if(!getToken()) return false;
+  try{
+    const data = await apiRequest('/api/me');
+    loadUserIntoState(data.user);
+    return true;
+  }catch(e){
+    clearToken();
+    return false;
+  }
+}
+
+async function handleGoogleCredential(response){
+  try{
+    const data = await apiRequest('/api/google-login', {
+      method:'POST',
+      body: JSON.stringify({ credential: response.credential, referredBy: getReferralFromURL() })
+    });
+    setToken(data.token);
+    loadUserIntoState(data.user);
+    renderHUD();
+    go('map');
+    toast(`مرحبًا ${data.user.username}!`, "GOOGLE LOGIN");
+  }catch(e){
+    toast(`تعذّر الدخول بجوجل: ${e.message}`);
+  }
+}
+
+function getReferralFromURL(){
+  const params = new URLSearchParams(window.location.search);
+  return params.get('ref') || null;
+}
+// ==================================================================
+
+function levelFromXP(xp){
+  if(xp<1000) return 1;
+  if(xp<2500) return 2;
+  if(xp<5000) return 3;
+  return 4 + Math.floor((xp-5000)/2500);
+}
+function xpRangeForLevel(level){
+  const bounds=[0,1000,2500,5000];
+  if(level<=3) return [bounds[level-1], bounds[level]];
+  const start = 5000+(level-4)*2500;
+  return [start, start+2500];
+}
+function genReferralCode(name){
+  const rand = Math.random().toString(36).slice(2,7).toUpperCase();
+  const base = (name ? name : "PLAYER").replace(/[^a-zA-Z0-9]/g,"").slice(0,8).toUpperCase() || "PLAYER";
+  return `CODEQUEST-${base}-${rand}`;
+}
+function toast(msg, pill){
+  const t=document.getElementById('toast');
+  t.innerHTML = `<span>${msg}</span>` + (pill? `<span class="pill">${pill}</span>`:"");
+  t.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer=setTimeout(()=>t.classList.remove('show'), 2600);
+}
+function awardMission(m){
+  if(state.completed.has(m.id)) return;
+  state.completed.add(m.id);
+  state.xp += m.xp;
+  state.coins += m.coins;
+  ACHIEVEMENTS.forEach(a=>{ if(!state.achievements.has(a.id) && a.test()) state.achievements.add(a.id); });
+  toast(m.msgOverride || "Mission Completed!", `+${m.xp} XP · +${m.coins} 🪙`);
+  renderHUD();
+  saveCurrentUser();
+}
+
+function getNextMission(islandId, currentMissionId, isBoss){
+  const isl = ISLANDS.find(i=>i.id===islandId);
+  if(!isl) return null;
+  if(isBoss) return null; // اذا كان Boss خلاص خلصت الجزيرة
+  
+  const idx = isl.missions.findIndex(m=>m.id===currentMissionId);
+  if(idx !== -1 && idx < isl.missions.length - 1){
+    // فيه مهمة بعدها بنفس الجزيرة
+    return {type: 'mission', islandId: isl.id, missionId: isl.missions[idx+1].id};
+  } else if(idx === isl.missions.length - 1 && isl.boss){
+    // خلصت كل المهام وبقي الـ Boss
+    return {type: 'boss', islandId: isl.id};
+  } else {
+    // انتهت الجزيرة، نبحث عن أول مهمة في الجزيرة التالية إن وجدت
+    const islIdx = ISLANDS.findIndex(i=>i.id===islandId);
+    if(islIdx !== -1 && islIdx < ISLANDS.length - 1){
+      const nextIsl = ISLANDS[islIdx + 1];
+      if(nextIsl.missions.length > 0){
+        return {type: 'mission', islandId: nextIsl.id, missionId: nextIsl.missions[0].id};
+      }
+    }
+  }
+  return null;
+}
+
+function renderHUD(){
+  const lvl = levelFromXP(state.xp);
+  const [lo,hi] = xpRangeForLevel(lvl);
+  const pct = Math.min(100, Math.round(((state.xp-lo)/(hi-lo))*100));
+  document.getElementById('hudStats').innerHTML = `
+    <div class="hud-stat">LV <b>${lvl}</b></div>
+    <div class="hud-stat">XP <b>${state.xp}</b><div class="xp-mini"><i style="width:${pct}%"></i></div></div>
+    <div class="hud-stat">🪙 <b>${state.coins}</b></div>
+  `;
+  const nav = document.getElementById('navlinks');
+  if(state.username){
+    nav.innerHTML = `
+      <button data-go="map">World Map</button>
+      <button data-go="profile">Profile</button>
+      <button data-go="referral">Invite</button>
+      <button data-go="pricing">Levels</button>
+    `;
+    nav.querySelectorAll('button').forEach(b=>b.onclick=()=>go(b.dataset.go));
+  } else {
+    nav.innerHTML = "";
+  }
+}
+
+function go(route, param){
+  window.scrollTo({top:0,behavior:"smooth"});
+  const v = document.getElementById('view');
+  if(route==="home") v.innerHTML = viewHome();
+  else if(route==="create") v.innerHTML = viewCreate();
+  else if(route==="map") v.innerHTML = viewMap();
+  else if(route==="island") v.innerHTML = viewIsland(param);
+  else if(route==="mission") v.innerHTML = viewMission(param.islandId, param.missionId, false);
+  else if(route==="boss") v.innerHTML = viewMission(param, null, true);
+  else if(route==="profile") v.innerHTML = viewProfile();
+  else if(route==="referral") v.innerHTML = viewReferral();
+  else if(route==="pricing") v.innerHTML = viewPricing();
+  bindView(route, param);
+}
+
+function viewHome(){
+  return `
+  <div class="hero">
+    <div class="eyebrow">Learn · Code · Play · Master</div>
+    <h1>Become a Web Developer by Playing a Game</h1>
+    <p>تعلّم HTML وCSS وJavaScript عبر مهام حقيقية، ألغاز، وتحديات كود فعلية — مو درس مقروء، لعبة تلعبها وتتعلم فيها.</p>
+    <div class="hero-actions">
+      <button class="btn" id="playNow">PLAY NOW</button>
+      <button class="btn ghost" id="watchTrailer">WATCH TRAILER</button>
+    </div>
+    <div class="hero-flow">
+      <span class="on">LEARN</span><span class="on">PLAY</span><span class="on">CODE</span><span>SOLVE</span><span>PASS</span><span>UNLOCK</span>
+    </div>
+  </div>
+
+  <div class="stitle"><h2>المستويات</h2><span class="num">03</span></div>
+  <div class="grid3">
+    <div class="pcard"><h3>Basic</h3><div class="price">$10</div>
+      <ul><li>HTML Basics</li><li>CSS Basics</li><li>JavaScript Basics</li></ul>
+      <div class="tag">Invite 5 = Free</div>
+    </div>
+    <div class="pcard"><h3>Intermediate</h3><div class="price">$20</div>
+      <ul><li>Flexbox & Grid</li><li>DOM Manipulation</li><li>Fetch API</li></ul>
+    </div>
+    <div class="pcard"><h3>Advanced</h3><div class="price">$40</div>
+      <ul><li>Async / Await</li><li>Real Projects</li><li>Web Apps</li></ul>
+    </div>
+  </div>
+  `;
+}
+
+function viewCreate(){
+  return `
+  <h2>الدخول إلى Code Quest</h2>
+  <p style="color:var(--dim);font-size:13px;margin-top:6px">سجّل حساب جديد أو سجّل دخولك بحساب موجود.</p>
+
+  <div id="googleBtnBox" style="margin:18px 0"></div>
+  <div style="color:var(--dim2);font-size:11px;text-align:center;margin:10px 0">— أو —</div>
+
+  <div class="navlinks" style="margin-bottom:16px">
+    <button id="tabRegister" class="active">إنشاء حساب</button>
+    <button id="tabLogin">تسجيل الدخول</button>
+  </div>
+
+  <div id="registerForm">
+    <div class="avatars" id="avList">
+      ${AVATARS.map(a=>`<div class="avatar" data-id="${a.id}"><div>${a.e}</div><small>${a.n}</small></div>`).join('')}
+    </div>
+    <div class="field">
+      <label>Username</label>
+      <input id="unameInput" type="text" placeholder="اكتب اسمك هنا" maxlength="18">
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input id="regEmailInput" type="email" placeholder="you@example.com">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input id="regPassInput" type="password" placeholder="6 أحرف على الأقل">
+    </div>
+    <button class="btn block" id="startGameBtn" disabled>إنشاء الحساب والدخول</button>
+  </div>
+
+  <div id="loginForm" class="hidden">
+    <div class="field">
+      <label>Email</label>
+      <input id="loginEmailInput" type="email" placeholder="you@example.com">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input id="loginPassInput" type="password" placeholder="كلمة المرور">
+    </div>
+    <button class="btn block" id="loginBtn">تسجيل الدخول</button>
+  </div>
+
+  <p id="authError" style="color:#ff9d9d;font-size:12px;margin-top:10px"></p>
+  `;
+}
+
+function isIslandUnlocked(isl){
+  if(isl.unlockedByDefault) return true;
+  const req = ISLANDS.find(i=>i.id===isl.requires);
+  if(!req) return false;
+  const bossDone = req.boss ? state.completed.has(req.boss.id) : true;
+  const allMissionsDone = req.missions.every(m=>state.completed.has(m.id));
+  return allMissionsDone && bossDone && req.missions.length>0;
+}
+
+function islandProgress(isl){
+  const total = isl.missions.length + (isl.boss?1:0);
+  if(total===0) return 0;
+  const done = isl.missions.filter(m=>state.completed.has(m.id)).length + (isl.boss && state.completed.has(isl.boss.id)?1:0);
+  return Math.round((done/total)*100);
+}
+
+function viewMap(){
+  return `
+  <h2>🌍 CODE WORLD</h2>
+  <p style="color:var(--dim);font-size:13px;margin-top:6px">مرحبًا ${state.avatar} ${state.username} — اختر منطقة لبدء المهام.</p>
+  <div class="map" id="mapGrid" style="margin-top:20px">
+    ${ISLANDS.map(isl=>{
+      const unlocked = isIslandUnlocked(isl);
+      const pct = islandProgress(isl);
+      const hasContent = isl.missions.length>0;
+      return `
+      <div class="island ${unlocked?'':'locked'}" data-id="${isl.id}">
+        ${!unlocked?'<div class="lock-badge">🔒 مقفلة</div>':''}
+        <div class="icon">${isl.icon}</div>
+        <h3>${isl.name}</h3>
+        <p>${isl.desc}${!hasContent && unlocked? " — قريبًا":""}</p>
+        <div class="bar"><i style="width:${pct}%"></i></div>
+        <div class="meta"><span>${pct}% COMPLETE</span><span>${isl.missions.length} MISSIONS</span></div>
+      </div>`;
+    }).join('')}
+  </div>
+  `;
+}
+
+function viewIsland(islandId){
+  const isl = ISLANDS.find(i=>i.id===islandId);
+  if(!isl.missions.length){
+    return `
+      <button class="btn ghost small" id="backMap">← World Map</button>
+      <div class="locked-panel" style="margin-top:20px">
+        <div class="lock">🚧</div>
+        <h2>${isl.name} — قريبًا</h2>
+        <p>هذا المحتوى قيد الإضافة قريبًا.</p>
+      </div>`;
+  }
+  return `
+  <button class="btn ghost small" id="backMap">← World Map</button>
+  <div class="stitle"><h2>${isl.icon} ${isl.name}</h2><span class="num">${islandProgress(isl)}%</span></div>
+  <div class="mlist">
+    ${isl.missions.map((m,i)=>{
+      const done = state.completed.has(m.id);
+      return `
+      <div class="mrow ${done?'done':''}" data-m="${m.id}">
+        <div class="left"><div class="idx">${done?'✓':i+1}</div><div class="title">${m.title}</div></div>
+        <div class="status">${done? "COMPLETED" : `+${m.xp} XP`}</div>
+      </div>`;
+    }).join('')}
+    ${isl.boss? `
+      <div class="mrow ${state.completed.has(isl.boss.id)?'done':''} ${isl.missions.every(m=>state.completed.has(m.id))?'':'locked'}" data-boss="${isl.id}">
+        <div class="left"><div class="idx">👑</div><div class="title">${isl.boss.title}</div></div>
+        <div class="status">${state.completed.has(isl.boss.id)? "DEFEATED" : `BOSS · +${isl.boss.xp} XP`}</div>
+      </div>` : ''}
+  </div>
+  `;
+}
+
+function viewMission(islandId, missionId, isBoss){
+  const isl = ISLANDS.find(i=>i.id===islandId);
+  const m = isBoss ? isl.boss : isl.missions.find(x=>x.id===missionId);
+  const done = state.completed.has(m.id);
+  return `
+  <button class="btn ghost small" id="backIsland">← ${isl.name}</button>
+  <div class="mission-head" style="margin-top:16px">
+    <h2>${isBoss? '👑 ':''}${m.title}</h2>
+    <div class="status" style="color:var(--dim)">${done? 'مكتملة ✓' : `مكافأة: +${m.xp} XP · +${m.coins} 🪙`}</div>
+  </div>
+  <div class="brief"><div class="k">Mission Brief</div><p>${m.brief}</p></div>
+  <div class="editor-wrap">
+    <div class="editor-box">
+      <div class="bar2"><span>${m.type==='js'? 'JS EDITOR' : 'HTML EDITOR'}</span><span id="attemptsLbl">Attempts: 0</span></div>
+      <textarea id="codeArea" spellcheck="false">${m.starter}</textarea>
+    </div>
+    <div class="editor-box">
+      ${m.type==='js' ? `
+        <div class="bar2"><span>CONSOLE</span></div>
+        <div class="console" id="consoleBox" style="min-height:230px">// شغّل الكود لترى النتيجة</div>
+      ` : `
+        <div class="bar2"><span>LIVE PREVIEW</span></div>
+        <iframe id="preview"></iframe>
+        <div class="console" id="consoleBox"><span class="ok">// شغّل الكود لترى النتيجة</span></div>
+      `}
+    </div>
+  </div>
+  <div class="mission-actions">
+    <button class="btn" id="runBtn">RUN CODE</button>
+    <button class="btn ghost" id="submitBtn">SUBMIT</button>
+    <button class="btn ghost" id="resetBtn">RESET</button>
+    <button class="btn success hidden" id="nextBtn">NEXT →</button>
+  </div>
+  `;
+}
+
+function viewProfile(){
+  const lvl = levelFromXP(state.xp);
+  const [lo,hi] = xpRangeForLevel(lvl);
+  const pct = Math.min(100, Math.round(((state.xp-lo)/(hi-lo))*100));
+  return `
+  <h2>Profile</h2>
+  <div class="profile-grid" style="margin-top:16px">
+    <div class="pcol">
+      <div class="av">${state.avatar}</div>
+      <h3>${state.username}</h3>
+      <div class="lvl">LEVEL ${lvl}</div>
+      <div class="xpbar"><i style="width:${pct}%"></i></div>
+      <div class="stats2">
+        <div class="stat2"><b>${state.xp}</b><span>XP</span></div>
+        <div class="stat2"><b>${state.coins}</b><span>COINS</span></div>
+        <div class="stat2"><b>${state.completed.size}</b><span>MISSIONS</span></div>
+        <div class="stat2"><b>${state.achievements.size}</b><span>BADGES</span></div>
+      </div>
+      <button class="btn ghost small" id="logoutBtn" style="margin-top:16px;width:100%">تسجيل خروج</button>
+    </div>
+    <div>
+      <div class="stitle" style="margin-top:0"><h2 style="font-size:15px">Achievements</h2></div>
+      <div class="ach-grid">
+        ${ACHIEVEMENTS.map(a=>`
+          <div class="ach ${state.achievements.has(a.id)?'on':''}">
+            <span class="em">${a.e}</span>${a.n}
+          </div>`).join('')}
+      </div>
+      <div class="stitle"><h2 style="font-size:15px">Purchased Levels</h2></div>
+      <p style="color:var(--dim);font-size:12.5px">${state.level1Unlocked? "✓ Level 1 — Basic (مفتوح)" : "لا يوجد مستوى مفتوح بعد."}</p>
+    </div>
+  </div>
+  `;
+}
+
+function viewReferral(){
+  const need = 5;
+  const pct = Math.min(100, Math.round((state.invitesAccepted/need)*100));
+  return `
+  <h2>Invite Friends</h2>
+  <div class="ref-box" style="margin-top:16px">
+    <div class="k" style="font-size:11px;color:var(--dim2);letter-spacing:.15em">YOUR REFERRAL CODE</div>
+    <div class="code-row">
+      <div class="code" id="refCodeText">${state.referralCode}</div>
+      <button class="btn ghost small" id="copyRefBtn">Copy Link</button>
+    </div>
+    <div class="progress-line">
+      <div class="track"><i style="width:${pct}%"></i></div>
+      <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--dim)">
+        <span>${state.invitesAccepted} / ${need} Friends Joined</span>
+        <span>${state.level1Unlocked? "🎉 Level 1 Unlocked!" : `Invite ${need-state.invitesAccepted} more to unlock BASIC for FREE`}</span>
+      </div>
+    </div>
+    <div class="share-row">
+      <button data-share="whatsapp">WhatsApp</button>
+      <button data-share="telegram">Telegram</button>
+      <button data-share="x">X</button>
+      <button data-share="facebook">Facebook</button>
+    </div>
+    <div class="note">
+      ✅ العداد محفوظ على حسابك على السيرفر ومتزامن بين كل أجهزتك.
+    </div>
+  </div>
+  `;
+}
+
+function viewPricing(){
+  return `
+  <h2>Levels & Pricing</h2>
+  <div class="grid3" style="margin-top:16px">
+    <div class="pcard"><h3>Basic</h3><div class="price">$10</div>
+      <ul><li>HTML / CSS / JS Basics</li><li>Interactive Missions</li><li>Basic Project</li></ul>
+      <button class="btn ghost block small" data-lvl="1">${state.level1Unlocked? "✓ Unlocked" : "Play Free Sample"}</button>
+    </div>
+    <div class="pcard"><h3>Intermediate</h3><div class="price">$20</div>
+      <ul><li>Flexbox & Grid</li><li>DOM & Fetch</li><li>Real Projects</li></ul>
+      <div class="locked-panel" style="padding:14px;margin-top:10px"><div class="lock" style="font-size:20px">🔒</div><p style="font-size:11px;margin-top:6px">يحتاج ربط بوابة دفع</p></div>
+    </div>
+    <div class="pcard"><h3>Advanced</h3><div class="price">$40</div>
+      <ul><li>Async/Await · APIs</li><li>Advanced Projects</li><li>Web Apps</li></ul>
+      <div class="locked-panel" style="padding:14px;margin-top:10px"><div class="lock" style="font-size:20px">🔒</div><p style="font-size:11px;margin-top:6px">يحتاج ربط بوابة دفع</p></div>
+    </div>
+  </div>
+  `;
+}
+
+function bindView(route, param){
+  if(route==="home"){
+    document.getElementById('playNow').onclick=()=> state.username? go('map') : go('create');
+    document.getElementById('watchTrailer').onclick=()=> toast("🎬 الفيديو التعريفي قريباً");
+  }
+  if(route==="create"){
+    let selected=null;
+    document.querySelectorAll('.avatar').forEach(el=>{
+      el.onclick=()=>{
+        document.querySelectorAll('.avatar').forEach(x=>x.classList.remove('sel'));
+        el.classList.add('sel');
+        selected = AVATARS.find(a=>a.id===el.dataset.id).e;
+        checkReady();
+      };
+    });
+    const unameInput = document.getElementById('unameInput');
+    const regEmailInput = document.getElementById('regEmailInput');
+    const regPassInput = document.getElementById('regPassInput');
+    const errorBox = document.getElementById('authError');
+    [unameInput, regEmailInput, regPassInput].forEach(el=> el.oninput = checkReady);
+    function checkReady(){
+      document.getElementById('startGameBtn').disabled = !(selected && unameInput.value.trim().length>=2 && /\S+@\S+\.\S+/.test(regEmailInput.value) && regPassInput.value.length>=6);
+    }
+
+    document.getElementById('tabRegister').onclick=()=>{
+      document.getElementById('tabRegister').classList.add('active');
+      document.getElementById('tabLogin').classList.remove('active');
+      document.getElementById('registerForm').classList.remove('hidden');
+      document.getElementById('loginForm').classList.add('hidden');
+      errorBox.textContent='';
+    };
+    document.getElementById('tabLogin').onclick=()=>{
+      document.getElementById('tabLogin').classList.add('active');
+      document.getElementById('tabRegister').classList.remove('active');
+      document.getElementById('loginForm').classList.remove('hidden');
+      document.getElementById('registerForm').classList.add('hidden');
+      errorBox.textContent='';
+    };
+
+    document.getElementById('startGameBtn').onclick=async ()=>{
+      const email = regEmailInput.value.trim().toLowerCase();
+      const username = unameInput.value.trim();
+      errorBox.textContent = '';
+      try{
+        const data = await apiRequest('/api/register', {
+          method:'POST',
+          body: JSON.stringify({
+            email, password: regPassInput.value, username, avatar: selected,
+            referredBy: getReferralFromURL(),
+          })
+        });
+        setToken(data.token);
+        loadUserIntoState(data.user);
+        renderHUD();
+        go('map');
+        toast("مرحبًا بك في Code World!", "GAME START");
+      }catch(e){
+        errorBox.textContent = e.message;
+      }
+    };
+
+    document.getElementById('loginBtn').onclick=async ()=>{
+      const email = document.getElementById('loginEmailInput').value.trim().toLowerCase();
+      const pass = document.getElementById('loginPassInput').value;
+      errorBox.textContent = '';
+      try{
+        const data = await apiRequest('/api/login', {
+          method:'POST',
+          body: JSON.stringify({ email, password: pass })
+        });
+        setToken(data.token);
+        loadUserIntoState(data.user);
+        renderHUD();
+        go('map');
+        toast(`أهلاً رجعت، ${data.user.username}!`, "WELCOME BACK");
+      }catch(e){
+        errorBox.textContent = e.message;
+      }
+    };
+
+    // زر جوجل الحقيقي
+    if(window.google && google.accounts && google.accounts.id){
+      google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: handleGoogleCredential
+      });
+      google.accounts.id.renderButton(document.getElementById('googleBtnBox'), { theme:'filled_black', size:'large', width:280 });
+    }
+  }
+  if(route==="map"){
+    document.querySelectorAll('.island').forEach(el=>{
+      el.onclick=()=>{
+        const isl = ISLANDS.find(i=>i.id===el.dataset.id);
+        if(!isIslandUnlocked(isl)){ toast("🔒 هذي المنطقة مقفلة — أكمل المنطقة السابقة أولاً"); return; }
+        go('island', isl.id);
+      };
+    });
+  }
+  if(route==="island"){
+    document.getElementById('backMap').onclick=()=>go('map');
+    document.querySelectorAll('[data-m]').forEach(el=>{
+      el.onclick=()=> go('mission', {islandId: param, missionId: el.dataset.m});
+    });
+    document.querySelectorAll('[data-boss]').forEach(el=>{
+      if(el.classList.contains('locked')){ el.onclick=()=>toast("👑 كمّل كل المهام أولاً قبل مواجهة الـ Boss"); return; }
+      el.onclick=()=> go('boss', el.dataset.boss);
+    });
+  }
+  if(route==="mission" || route==="boss"){
+    const islandId = route==="boss" ? param : param.islandId;
+    const isl = ISLANDS.find(i=>i.id===islandId);
+    const isBoss = route==="boss";
+    const m = isBoss ? isl.boss : isl.missions.find(x=>x.id===param.missionId);
+    document.getElementById('backIsland').onclick=()=>go('island', islandId);
+
+    let attempts=0;
+    const area = document.getElementById('codeArea');
+    const preview = document.getElementById('preview');
+    const consoleBox = document.getElementById('consoleBox');
+    const nextBtn = document.getElementById('nextBtn');
+    const mtype = m.type || "html";
+
+    function showResult(result){
+      if(result.pass){
+        consoleBox.innerHTML = `<span class="ok">🎉 ${result.msg}</span>`;
+        awardMission(m);
+        
+        // تفعيل زر التالي والانتقال التلقائي إذا وُجدت مهمة تالية
+        const nextTarget = getNextMission(islandId, m.id, isBoss);
+        if(nextTarget){
+          nextBtn.classList.remove('hidden');
+          nextBtn.onclick = () => {
+            if(nextTarget.type === 'mission'){
+              go('mission', {islandId: nextTarget.islandId, missionId: nextTarget.missionId});
+            } else {
+              go('boss', nextTarget.islandId);
+            }
+          };
+        } else {
+          // إذا كانت آخر مهمة باللعبة، نعود لخريطة العالم تلقائياً بعد ثانيتين
+          setTimeout(()=> go('island', islandId), 2000);
+        }
+      } else {
+        let html = `<span class="err">❌ ${result.msg}</span>`;
+        if(attempts>=2) html += `<div class="hint">💡 Hint: ${result.hint}</div>`;
+        consoleBox.innerHTML = html;
+      }
+    }
+
+    if(mtype==="js"){
+      document.getElementById('runBtn').onclick=()=>{
+        try{
+          new Function(area.value)();
+          consoleBox.innerHTML = `<span class="ok">✓ تم تشغيل الكود بدون أخطاء.</span>`;
+        }catch(e){
+          consoleBox.innerHTML = `<span class="err">خطأ: ${e.message}</span>`;
+        }
+      };
+      document.getElementById('resetBtn').onclick=()=>{ area.value=m.starter; consoleBox.textContent="// شغّل الكود لترى النتيجة"; nextBtn.classList.add('hidden'); };
+      document.getElementById('submitBtn').onclick=()=>{
+        attempts++;
+        document.getElementById('attemptsLbl').textContent = `Attempts: ${attempts}`;
+        showResult(m.check(area.value));
+      };
+    } else if(mtype==="dom"){
+      function runPreview(){ preview.srcdoc = area.value; }
+      document.getElementById('runBtn').onclick=runPreview;
+      document.getElementById('resetBtn').onclick=()=>{ area.value=m.starter; runPreview(); nextBtn.classList.add('hidden'); };
+      document.getElementById('submitBtn').onclick=()=>{
+        attempts++;
+        document.getElementById('attemptsLbl').textContent = `Attempts: ${attempts}`;
+        preview.onload = ()=>{
+          try{
+            const doc = preview.contentDocument;
+            const win = preview.contentWindow;
+            showResult(m.check(area.value, doc, win));
+          }catch(e){
+            showResult({pass:false, msg:"خطأ أثناء التنفيذ: "+e.message, hint:"راجع صياغة الكود."});
+          }
+        };
+        preview.srcdoc = area.value;
+      };
+    } else {
+      function runPreview(){ preview.srcdoc = area.value; }
+      document.getElementById('runBtn').onclick=runPreview;
+      document.getElementById('resetBtn').onclick=()=>{ area.value=m.starter; runPreview(); nextBtn.classList.add('hidden'); };
+      document.getElementById('submitBtn').onclick=()=>{
+        attempts++;
+        document.getElementById('attemptsLbl').textContent = `Attempts: ${attempts}`;
+        runPreview();
+        showResult(m.check(area.value));
+      };
+    }
+  }
+  if(route==="profile"){
+    document.getElementById('logoutBtn').onclick=()=>{
+      endSession();
+      location.reload();
+    };
+  }
+  if(route==="referral"){
+    document.getElementById('copyRefBtn').onclick=()=>{
+      const link = `https://codequest.game/join?ref=${state.referralCode}`;
+      navigator.clipboard?.writeText(link).catch(()=>{});
+      toast("📋 تم نسخ رابط الدعوة");
+    };
+    document.querySelectorAll('[data-share]').forEach(b=>{
+      b.onclick=()=>{
+        const link = encodeURIComponent(`https://codequest.game/join?ref=${state.referralCode}`);
+        const text = encodeURIComponent("انضم لي بلعبة Code Quest وتعلم البرمجة وأنت تلعب!");
+        const urls = {
+          whatsapp: `https://wa.me/?text=${text}%20${link}`,
+          telegram: `https://t.me/share/url?url=${link}&text=${text}`,
+          x: `https://twitter.com/intent/tweet?text=${text}&url=${link}`,
+          facebook: `https://www.facebook.com/sharer/sharer.php?u=${link}`,
+        };
+        window.open(urls[b.dataset.share], '_blank');
+      };
+    });
+  }
+  if(route==="pricing"){
+    const btn = document.querySelector('[data-lvl="1"]');
+    if(btn) btn.onclick=()=> go('map');
+  }
+}
+
+window.addEventListener('DOMContentLoaded', ()=>{
+  const lines = ["booting world...", "loading missions...", "compiling quests...", "ready."];
+  let i=0;
+  const bl = document.getElementById('bootline');
+  const t = setInterval(()=>{ i++; if(lines[i]) bl.textContent = lines[i]; }, 380);
+  setTimeout(()=>{
+    clearInterval(t);
+    document.getElementById('boot').style.display='none';
+    document.getElementById('app').style.display='block';
+    restoreSession().finally(()=>{
+      renderHUD();
+      go(state.username ? 'map' : 'home');
+    });
+  }, 1650);
+});
+</script>
+</body>
+</html>
