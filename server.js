@@ -12,13 +12,9 @@ const db = require('./db');
 const app = express();
 
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || 'satartandnaw23fatmanjmitandwab';
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
-
-if (!JWT_SECRET) {
-  console.error('❌ JWT_SECRET is missing. Set it in your .env file before starting the server.');
-  process.exit(1);
-}
+const DB_PATH = process.env.DB_PATH || './codequest.db';
 
 const googleClient = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
@@ -207,9 +203,9 @@ app.post('/api/progress', auth, (req, res) => {
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
-app.use(express.static(path.join(__dirname,  'public')));
+app.use(express.static(path.join(__dirname, 'public')));
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname,  'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(PORT, () => {
