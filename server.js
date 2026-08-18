@@ -207,9 +207,9 @@ app.post('/api/progress', auth, (req, res) => {
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 
-app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use(express.static(path.join(__dirname,  'public')));
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+  res.sendFile(path.join(__dirname,  'public', 'index.html'));
 });
 
 app.listen(PORT, () => {
